@@ -444,7 +444,14 @@ private:
 
 		struct SortByReverseDepthAndPriority {
 			_FORCE_INLINE_ bool operator()(const GeometryInstanceSurface *A, const GeometryInstanceSurface *B) const {
-				return (A->sort.priority == B->sort.priority) ? (A->owner->depth > B->owner->depth) : (A->sort.priority < B->sort.priority);
+				return (A->sort.priority == B->sort.priority)
+          ?
+            (
+              (A->owner->drawing_order == B->owner->drawing_order)
+              ? (A->owner->depth > B->owner->depth)
+              : (A->owner->drawing_order < B->owner->drawing_order)
+            )
+          : (A->sort.priority < B->sort.priority);
 			}
 		};
 

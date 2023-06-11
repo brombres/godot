@@ -61,6 +61,9 @@
 			This object will only be visible for [Camera3D]s whose cull mask includes any of the render layers this [VisualInstance3D] is set to.
 			For [Light3D]s, this can be used to control which [VisualInstance3D]s are affected by a specific light. For [GPUParticles3D], this can be used to control which particles are effected by a specific attractor. For [Decal]s, this can be used to control which [VisualInstance3D]s are affected by a specific decal.
 		</member>
+		<member name="drawing_order" type="int" setter="set_drawing_order" getter="get_drawing_order" default="0">
+      Nodes with a lower drawing order will be drawn before those with a higher drawing order. This may not make a visible difference if depth testing is in use; set the material's Transparency > No Depth Test option to disable depth testing.
+		</member>
 		<member name="sorting_offset" type="float" setter="set_sorting_offset" getter="get_sorting_offset" default="0.0">
 			The amount by which the depth of this [VisualInstance3D] will be adjusted when sorting by depth. Uses the same units as the engine (which are typically meters). Adjusting it to a higher value will make the [VisualInstance3D] reliably draw on top of other [VisualInstance3D]s that are otherwise positioned at the same spot. To ensure it always draws on top of other objects around it (not positioned at the same spot), set the value to be greater than the distance between this [VisualInstance3D] and the other nearby [VisualInstance3D]s.
 		</member>
