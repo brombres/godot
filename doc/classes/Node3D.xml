@@ -39,6 +39,12 @@
 				Forces the transform to update. Transform changes in physics are not instant for performance reasons. Transforms are accumulated and then set. Use this if you need an up-to-date transform when doing physics operations.
 			</description>
 		</method>
+		<method name="get_effective_drawing_order" qualifiers="const">
+			<return type="int" />
+			<description>
+				Returns this node's [member drawing_order] or, if zero, its parent's [method get_effective_drawing_order].
+			</description>
+		</method>
 		<method name="get_gizmos" qualifiers="const">
 			<return type="Node3DGizmo[]" />
 			<description>
@@ -308,6 +314,9 @@
 			Scale part of the local transformation.
 			[b]Note:[/b] Mixed negative scales in 3D are not decomposable from the transformation matrix. Due to the way scale is represented with transformation matrices in Godot, the scale values will either be all positive or all negative.
 			[b]Note:[/b] Not all nodes are visually scaled by the [member scale] property. For example, [Light3D]s are not visually affected by [member scale].
+		</member>
+		<member name="drawing_order" type="int" setter="set_drawing_order" getter="get_drawing_order" default="0">
+			Nodes with a lower drawing order will be drawn before those with a higher drawing order. This may not make a visible difference if depth testing is in use; set the material's Transparency > No Depth Test option to disable depth testing. Nodes with a drawing order of 0 will be drawn using their parent's drawing order.
 		</member>
 		<member name="top_level" type="bool" setter="set_as_top_level" getter="is_set_as_top_level" default="false">
 			If [code]true[/code], the node will not inherit its transformations from its parent. Node transformations are only in global space.

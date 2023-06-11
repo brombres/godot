@@ -53,6 +53,8 @@ void VisualInstance3D::_notification(int p_what) {
 			ERR_FAIL_COND(get_world_3d().is_null());
 			RenderingServer::get_singleton()->instance_set_scenario(instance, get_world_3d()->get_scenario());
 			_update_visibility();
+			int effective_drawing_order = get_effective_drawing_order();
+			RenderingServer::get_singleton()->instance_set_drawing_order(instance, effective_drawing_order);
 		} break;
 
 		case NOTIFICATION_TRANSFORM_CHANGED: {
@@ -68,6 +70,12 @@ void VisualInstance3D::_notification(int p_what) {
 		case NOTIFICATION_VISIBILITY_CHANGED: {
 			_update_visibility();
 		} break;
+
+		case NOTIFICATION_DRAWING_ORDER_CHANGED: {
+			int effective_drawing_order = get_effective_drawing_order();
+			RenderingServer::get_singleton()->instance_set_drawing_order(instance, effective_drawing_order);
+		} break;
+
 	}
 }
 

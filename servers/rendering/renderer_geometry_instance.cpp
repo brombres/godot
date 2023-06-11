@@ -80,6 +80,10 @@ void RenderGeometryInstanceBase::set_transform(const Transform3D &p_transform, c
 	lod_model_scale = max_scale;
 }
 
+void RenderGeometryInstanceBase::set_drawing_order(int p_drawing_order) {
+	drawing_order = p_drawing_order;
+}
+
 void RenderGeometryInstanceBase::set_pivot_data(float p_sorting_offset, bool p_use_aabb_center) {
 	sorting_offset = p_sorting_offset;
 	use_aabb_center = p_use_aabb_center;
