@@ -38,37 +38,37 @@
 
 /*
 
- possible algorithms:
+possible algorithms:
 
- Algorithm 1: (current)
+Algorithm 1: (current)
 
- definition of invalidation: global is invalid
+definition of invalidation: global is invalid
 
- 1) If a node sets a LOCAL, it produces an invalidation of everything above
- .  a) If above is invalid, don't keep invalidating upwards
- 2) If a node sets a GLOBAL, it is converted to LOCAL (and forces validation of everything pending below)
+1) If a node sets a LOCAL, it produces an invalidation of everything above
+.  a) If above is invalid, don't keep invalidating upwards
+2) If a node sets a GLOBAL, it is converted to LOCAL (and forces validation of everything pending below)
 
- drawback: setting/reading globals is useful and used very often, and using affine inverses is slow
+drawback: setting/reading globals is useful and used very often, and using affine inverses is slow
 
 ---
 
- Algorithm 2: (no longer current)
+Algorithm 2: (no longer current)
 
- definition of invalidation: NONE dirty, LOCAL dirty, GLOBAL dirty
+definition of invalidation: NONE dirty, LOCAL dirty, GLOBAL dirty
 
- 1) If a node sets a LOCAL, it must climb the tree and set it as GLOBAL dirty
- .  a) marking GLOBALs as dirty up all the tree must be done always
- 2) If a node sets a GLOBAL, it marks local as dirty, and that's all?
+1) If a node sets a LOCAL, it must climb the tree and set it as GLOBAL dirty
+.  a) marking GLOBALs as dirty up all the tree must be done always
+2) If a node sets a GLOBAL, it marks local as dirty, and that's all?
 
- //is clearing the dirty state correct in this case?
+//is clearing the dirty state correct in this case?
 
- drawback: setting a local down the tree forces many tree walks often
+drawback: setting a local down the tree forces many tree walks often
 
 --
 
 future: no idea
 
- */
+*/
 
 Node3DGizmo::Node3DGizmo() {
 }
@@ -505,6 +505,15 @@ void Node3D::set_scale(const Vector3 &p_scale) {
 	}
 }
 
+void Node3D::set_drawing_order(int p_drawing_order) {
+	data.drawing_order = p_drawing_order;
+
+	if (!is_inside_tree()) {
+		return;
+	}
+	_propagate_drawing_order_changed();
+}
+
 Vector3 Node3D::get_position() const {
 	ERR_READ_THREAD_GUARD_V(Vector3());
 	return data.local_transform.origin;
@@ -532,6 +541,15 @@ Vector3 Node3D::get_scale() const {
 	}
 
 	return data.scale;
+}
+
+int Node3D::get_drawing_order() const {
+	return data.drawing_order;
+}
+
+int Node3D::get_effective_drawing_order() const {
+	if (data.top_level || !data.parent) return data.drawing_order;
+	return data.parent->get_effective_drawing_order() + data.drawing_order;
 }
 
 void Node3D::update_gizmos() {
@@ -740,6 +758,25 @@ Ref<World3D> Node3D::get_world_3d() const {
 	ERR_FAIL_NULL_V(data.viewport, Ref<World3D>());
 
 	return data.viewport->find_world_3d();
+}
+
+void Node3D::_propagate_drawing_order_changed() {
+	notification(NOTIFICATION_DRAWING_ORDER_CHANGED);
+	emit_signal(SceneStringNames::get_singleton()->draw_order_changed);
+
+#ifdef TOOLS_ENABLED
+	if (!data.gizmos.is_empty()) {
+		data.gizmos_dirty = true;
+		_update_gizmos();
+	}
+#endif
+
+	for (Node3D *c : data.children) {
+		if (c->data.top_level_active) {
+			continue; //don't propagate to a top_level
+		}
+		c->_propagate_drawing_order_changed();
+	}
 }
 
 void Node3D::_propagate_visibility_changed() {
@@ -1101,6 +1138,9 @@ void Node3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_rotation_edit_mode"), &Node3D::get_rotation_edit_mode);
 	ClassDB::bind_method(D_METHOD("set_scale", "scale"), &Node3D::set_scale);
 	ClassDB::bind_method(D_METHOD("get_scale"), &Node3D::get_scale);
+	ClassDB::bind_method(D_METHOD("set_drawing_order", "offset"), &Node3D::set_drawing_order);
+	ClassDB::bind_method(D_METHOD("get_drawing_order"), &Node3D::get_drawing_order);
+	ClassDB::bind_method(D_METHOD("get_effective_drawing_order"), &Node3D::get_drawing_order);
 	ClassDB::bind_method(D_METHOD("set_quaternion", "quaternion"), &Node3D::set_quaternion);
 	ClassDB::bind_method(D_METHOD("get_quaternion"), &Node3D::get_quaternion);
 	ClassDB::bind_method(D_METHOD("set_basis", "basis"), &Node3D::set_basis);
@@ -1186,6 +1226,7 @@ void Node3D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::QUATERNION, "quaternion", PROPERTY_HINT_HIDE_QUATERNION_EDIT, "", PROPERTY_USAGE_EDITOR), "set_quaternion", "get_quaternion");
 	ADD_PROPERTY(PropertyInfo(Variant::BASIS, "basis", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR), "set_basis", "get_basis");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "scale", PROPERTY_HINT_LINK, "", PROPERTY_USAGE_EDITOR), "set_scale", "get_scale");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "drawing_order"), "set_drawing_order", "get_drawing_order");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "rotation_edit_mode", PROPERTY_HINT_ENUM, "Euler,Quaternion,Basis"), "set_rotation_edit_mode", "get_rotation_edit_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "rotation_order", PROPERTY_HINT_ENUM, "XYZ,XZY,YXZ,YZX,ZXY,ZYX"), "set_rotation_order", "get_rotation_order");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "top_level"), "set_as_top_level", "is_set_as_top_level");

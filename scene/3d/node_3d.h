@@ -95,6 +95,7 @@ private:
 		mutable EulerOrder euler_rotation_order = EulerOrder::YXZ;
 		mutable Vector3 euler_rotation;
 		mutable Vector3 scale = Vector3(1, 1, 1);
+		mutable int drawing_order = 0;
 		mutable RotationEditMode rotation_edit_mode = ROTATION_EDIT_MODE_EULER;
 
 		mutable MTNumeric<uint32_t> dirty;
@@ -138,6 +139,7 @@ private:
 	void _notify_dirty();
 	void _propagate_transform_changed(Node3D *p_origin);
 
+	void _propagate_drawing_order_changed();
 	void _propagate_visibility_changed();
 
 	void _propagate_visibility_parent();
@@ -165,6 +167,7 @@ public:
 		NOTIFICATION_EXIT_WORLD = 42,
 		NOTIFICATION_VISIBILITY_CHANGED = 43,
 		NOTIFICATION_LOCAL_TRANSFORM_CHANGED = 44,
+		NOTIFICATION_DRAWING_ORDER_CHANGED = 45,
 	};
 
 	Node3D *get_parent_node_3d() const;
@@ -180,6 +183,7 @@ public:
 	void set_rotation(const Vector3 &p_euler_rad);
 	void set_rotation_degrees(const Vector3 &p_euler_degrees);
 	void set_scale(const Vector3 &p_scale);
+	void set_drawing_order(int p_drawing_order);
 
 	void set_global_position(const Vector3 &p_position);
 	void set_global_rotation(const Vector3 &p_euler_rad);
@@ -191,6 +195,8 @@ public:
 	Vector3 get_rotation() const;
 	Vector3 get_rotation_degrees() const;
 	Vector3 get_scale() const;
+	int get_drawing_order() const;
+	int get_effective_drawing_order() const;
 
 	Vector3 get_global_position() const;
 	Vector3 get_global_rotation() const;

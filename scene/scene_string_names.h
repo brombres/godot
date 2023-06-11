@@ -59,6 +59,7 @@ public:
 	StringName doubledot;
 	StringName draw;
 	StringName hidden;
+	StringName draw_order_changed;
 	StringName visibility_changed;
 	StringName input_event;
 	StringName _input_event;
