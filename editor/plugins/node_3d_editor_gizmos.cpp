@@ -1943,6 +1943,27 @@ void Camera3DGizmoPlugin::redraw(EditorNode3DGizmo *p_gizmo) {
 			Vector3 tup(0, up.y + hsize / 2, side.z);
 			ADD_TRIANGLE(tup + offset, side + up + offset, nside + up + offset);
 		} break;
+
+		case Camera3D::PROJECTION_2DX: {
+      // TODO BROM
+			float hsize = camera->get_size() / 2.0;
+
+			Vector3 side = Vector3(hsize, 0, -camera->get_near()).normalized();
+			side.x *= size_factor.x;
+			Vector3 nside = Vector3(-side.x, side.y, side.z);
+			Vector3 up = Vector3(0, hsize * size_factor.y, 0);
+			Vector3 offset = Vector3(camera->get_frustum_offset().x, camera->get_frustum_offset().y, 0.0);
+
+			ADD_TRIANGLE(Vector3(), side + up + offset, side - up + offset);
+			ADD_TRIANGLE(Vector3(), nside + up + offset, nside - up + offset);
+			ADD_TRIANGLE(Vector3(), side + up + offset, nside + up + offset);
+			ADD_TRIANGLE(Vector3(), side - up + offset, nside - up + offset);
+
+			side.x = MIN(side.x, hsize * 0.25);
+			nside.x = -side.x;
+			Vector3 tup(0, up.y + hsize / 2, side.z);
+			ADD_TRIANGLE(tup + offset, side + up + offset, nside + up + offset);
+		} break;
 	}
 
 #undef ADD_TRIANGLE

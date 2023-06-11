@@ -43,7 +43,8 @@ public:
 	enum ProjectionType {
 		PROJECTION_PERSPECTIVE,
 		PROJECTION_ORTHOGONAL,
-		PROJECTION_FRUSTUM
+		PROJECTION_FRUSTUM,
+		PROJECTION_2DX
 	};
 
 	enum KeepAspect {
@@ -67,6 +68,7 @@ private:
 	real_t fov = 75.0;
 	real_t size = 1.0;
 	Vector2 frustum_offset;
+	real_t nominal_z = 2000.0;
 	real_t near = 0.05;
 	real_t far = 4000.0;
 	real_t v_offset = 0.0;
@@ -114,6 +116,7 @@ public:
 	void set_perspective(real_t p_fovy_degrees, real_t p_z_near, real_t p_z_far);
 	void set_orthogonal(real_t p_size, real_t p_z_near, real_t p_z_far);
 	void set_frustum(real_t p_size, Vector2 p_offset, real_t p_z_near, real_t p_z_far);
+  void set_2dx(real_t p_nominal_z, real_t p_z_far);
 	void set_projection(Camera3D::ProjectionType p_mode);
 
 	void make_current();
@@ -127,6 +130,7 @@ public:
 	real_t get_size() const;
 	real_t get_far() const;
 	real_t get_near() const;
+	real_t get_nominal_z() const;
 	Vector2 get_frustum_offset() const;
 
 	ProjectionType get_projection() const;
@@ -135,6 +139,7 @@ public:
 	void set_size(real_t p_size);
 	void set_far(real_t p_far);
 	void set_near(real_t p_near);
+	void set_nominal_z(real_t p_nominal_z);
 	void set_frustum_offset(Vector2 p_offset);
 
 	virtual Transform3D get_camera_transform() const;

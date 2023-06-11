@@ -66,11 +66,13 @@ public:
 		enum Type {
 			PERSPECTIVE,
 			ORTHOGONAL,
-			FRUSTUM
+			FRUSTUM,
+      _2DX
 		};
 		Type type;
 		float fov;
 		float znear, zfar;
+    float nominal_z;
 		float size;
 		Vector2 offset;
 		uint32_t visible_layers;
@@ -84,6 +86,7 @@ public:
 			visible_layers = 0xFFFFFFFF;
 			fov = 75;
 			type = PERSPECTIVE;
+      nominal_z = 2000;
 			znear = 0.05;
 			zfar = 4000;
 			size = 1.0;
@@ -100,6 +103,7 @@ public:
 	virtual void camera_set_perspective(RID p_camera, float p_fovy_degrees, float p_z_near, float p_z_far);
 	virtual void camera_set_orthogonal(RID p_camera, float p_size, float p_z_near, float p_z_far);
 	virtual void camera_set_frustum(RID p_camera, float p_size, Vector2 p_offset, float p_z_near, float p_z_far);
+	virtual void camera_set_2dx(RID p_camera, float p_nominal_z, float p_z_far);
 	virtual void camera_set_transform(RID p_camera, const Transform3D &p_transform);
 	virtual void camera_set_cull_mask(RID p_camera, uint32_t p_layers);
 	virtual void camera_set_environment(RID p_camera, RID p_env);

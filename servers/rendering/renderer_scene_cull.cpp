@@ -75,6 +75,15 @@ void RendererSceneCull::camera_set_frustum(RID p_camera, float p_size, Vector2 p
 	camera->zfar = p_z_far;
 }
 
+void RendererSceneCull::camera_set_2dx(RID p_camera, float p_nominal_z, float p_z_far) {
+	Camera *camera = camera_owner.get_or_null(p_camera);
+	ERR_FAIL_COND(!camera);
+	camera->type = Camera::_2DX;
+	camera->nominal_z = p_nominal_z;
+	camera->znear = 1;
+	camera->zfar = p_z_far;
+}
+
 void RendererSceneCull::camera_set_transform(RID p_camera, const Transform3D &p_transform) {
 	Camera *camera = camera_owner.get_or_null(p_camera);
 	ERR_FAIL_COND(!camera);
@@ -2548,6 +2557,13 @@ void RendererSceneCull::render_camera(const Ref<RenderSceneBuffers> &p_render_bu
 						camera->znear,
 						camera->zfar,
 						camera->vaspect);
+			} break;
+			case Camera::_2DX: {
+				projection.set_2dx(
+						p_viewport_size,
+						camera->nominal_z,
+						camera->znear,
+						camera->zfar);
 			} break;
 		}
 

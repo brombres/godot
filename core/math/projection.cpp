@@ -363,7 +363,7 @@ void Projection::set_orthogonal(real_t p_size, real_t p_aspect, real_t p_znear, 
 
 void Projection::set_frustum(real_t p_left, real_t p_right, real_t p_bottom, real_t p_top, real_t p_near, real_t p_far) {
 	ERR_FAIL_COND(p_right <= p_left);
-	ERR_FAIL_COND(p_top <= p_bottom);
+	//ERR_FAIL_COND(p_top <= p_bottom);  Removed for 2DX
 	ERR_FAIL_COND(p_far <= p_near);
 
 	real_t *te = &columns[0][0];
@@ -399,6 +399,32 @@ void Projection::set_frustum(real_t p_size, real_t p_aspect, Vector2 p_offset, r
 	}
 
 	set_frustum(-p_size / 2 + p_offset.x, +p_size / 2 + p_offset.x, -p_size / p_aspect / 2 + p_offset.y, +p_size / p_aspect / 2 + p_offset.y, p_near, p_far);
+}
+
+void Projection::set_2dx(Vector2 p_pixel_size, real_t nominal_z, real_t p_near, real_t p_far, bool p_flip_fov) {
+  real_t k = (nominal_z + 1) * 2;
+  Vector2 vanishing_point( 0.5, 0.5 );
+  real_t left = ((-2 * p_pixel_size.x) / k) * vanishing_point.x;
+  real_t top  = ((-2 * p_pixel_size.y) / k) * vanishing_point.y;
+  real_t right = left + 2*p_pixel_size.x/k;
+  real_t bottom = top + 2*p_pixel_size.y/k;
+
+  //FIXME
+  //if (p_flip_fov)
+  //{
+    //real_t temp = top;
+    //top = bottom;
+    //bottom = temp;
+  //}
+
+
+  set_frustum(left, right, bottom, top, p_near, p_far);
+
+  Projection translate;
+  translate.set_identity();
+  translate.columns[3][0] = -p_pixel_size.x*vanishing_point.x;
+  translate.columns[3][1] = -p_pixel_size.y*vanishing_point.y;
+  memcpy( columns, operator*(translate).columns, sizeof(Vector4)*4 );
 }
 
 real_t Projection::get_z_far() const {

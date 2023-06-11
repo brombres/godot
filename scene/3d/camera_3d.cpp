@@ -55,6 +55,9 @@ void Camera3D::_update_camera_mode() {
 		case PROJECTION_FRUSTUM: {
 			set_frustum(size, frustum_offset, near, far);
 		} break;
+		case PROJECTION_2DX: {
+			set_2dx(nominal_z, far);
+		} break;
 	}
 }
 
@@ -71,11 +74,24 @@ void Camera3D::_validate_property(PropertyInfo &p_property) const {
 		if (mode != PROJECTION_FRUSTUM) {
 			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
 		}
+	} else if (p_property.name == "nominal_z") {
+		if (mode != PROJECTION_2DX) {
+			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
+		}
+	} else if (p_property.name == "near") {
+		if (mode == PROJECTION_2DX) {
+			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
+		}
+	} else if (p_property.name == "keep_aspect") {
+		if (mode == PROJECTION_2DX) {
+			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
+		}
 	}
 
 	if (attributes.is_valid()) {
 		const CameraAttributesPhysical *physical_attributes = Object::cast_to<CameraAttributesPhysical>(attributes.ptr());
 		if (physical_attributes) {
+      // FIXME: should the following set include 2DX "nominal_z"? --BROM
 			if (p_property.name == "near" || p_property.name == "far" || p_property.name == "fov" || p_property.name == "keep_aspect") {
 				p_property.usage = PROPERTY_USAGE_READ_ONLY | PROPERTY_USAGE_INTERNAL | PROPERTY_USAGE_EDITOR;
 			}
@@ -218,8 +234,23 @@ void Camera3D::set_frustum(real_t p_size, Vector2 p_offset, real_t p_z_near, rea
 	update_gizmos();
 }
 
+void Camera3D::set_2dx(real_t p_nominal_z, real_t p_z_far) {
+	if (!force_change && nominal_z == p_nominal_z && p_z_far == far && mode == PROJECTION_2DX) {
+		return;
+	}
+
+  nominal_z = p_nominal_z;
+
+	far = p_z_far;
+	mode = PROJECTION_2DX;
+	force_change = false;
+
+	RenderingServer::get_singleton()->camera_set_2dx(camera, nominal_z, far);
+	update_gizmos();
+}
+
 void Camera3D::set_projection(ProjectionType p_mode) {
-	if (p_mode == PROJECTION_PERSPECTIVE || p_mode == PROJECTION_ORTHOGONAL || p_mode == PROJECTION_FRUSTUM) {
+	if (p_mode == PROJECTION_PERSPECTIVE || p_mode == PROJECTION_ORTHOGONAL || p_mode == PROJECTION_FRUSTUM || p_mode == PROJECTION_2DX) {
 		mode = p_mode;
 		_update_camera_mode();
 		notify_property_list_changed();
@@ -503,6 +534,7 @@ void Camera3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_perspective", "fov", "z_near", "z_far"), &Camera3D::set_perspective);
 	ClassDB::bind_method(D_METHOD("set_orthogonal", "size", "z_near", "z_far"), &Camera3D::set_orthogonal);
 	ClassDB::bind_method(D_METHOD("set_frustum", "size", "offset", "z_near", "z_far"), &Camera3D::set_frustum);
+	ClassDB::bind_method(D_METHOD("set_2dx", "nominal_z", "z_far"), &Camera3D::set_2dx);
 	ClassDB::bind_method(D_METHOD("make_current"), &Camera3D::make_current);
 	ClassDB::bind_method(D_METHOD("clear_current", "enable_next"), &Camera3D::clear_current, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("set_current", "enabled"), &Camera3D::set_current);
@@ -510,11 +542,13 @@ void Camera3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_camera_transform"), &Camera3D::get_camera_transform);
 	ClassDB::bind_method(D_METHOD("get_fov"), &Camera3D::get_fov);
 	ClassDB::bind_method(D_METHOD("get_frustum_offset"), &Camera3D::get_frustum_offset);
+	ClassDB::bind_method(D_METHOD("get_nominal_z"), &Camera3D::get_nominal_z);
 	ClassDB::bind_method(D_METHOD("get_size"), &Camera3D::get_size);
 	ClassDB::bind_method(D_METHOD("get_far"), &Camera3D::get_far);
 	ClassDB::bind_method(D_METHOD("get_near"), &Camera3D::get_near);
 	ClassDB::bind_method(D_METHOD("set_fov", "fov"), &Camera3D::set_fov);
 	ClassDB::bind_method(D_METHOD("set_frustum_offset", "offset"), &Camera3D::set_frustum_offset);
+	ClassDB::bind_method(D_METHOD("set_nominal_z","nominal_z"), &Camera3D::set_nominal_z);
 	ClassDB::bind_method(D_METHOD("set_size", "size"), &Camera3D::set_size);
 	ClassDB::bind_method(D_METHOD("set_far", "far"), &Camera3D::set_far);
 	ClassDB::bind_method(D_METHOD("set_near", "near"), &Camera3D::set_near);
@@ -551,17 +585,19 @@ void Camera3D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "h_offset", PROPERTY_HINT_NONE, "suffix:m"), "set_h_offset", "get_h_offset");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "v_offset", PROPERTY_HINT_NONE, "suffix:m"), "set_v_offset", "get_v_offset");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "doppler_tracking", PROPERTY_HINT_ENUM, "Disabled,Idle,Physics"), "set_doppler_tracking", "get_doppler_tracking");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "projection", PROPERTY_HINT_ENUM, "Perspective,Orthogonal,Frustum"), "set_projection", "get_projection");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "projection", PROPERTY_HINT_ENUM, "Perspective,Orthogonal,Frustum,2DX"), "set_projection", "get_projection");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "current"), "set_current", "is_current");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "fov", PROPERTY_HINT_RANGE, "1,179,0.1,degrees"), "set_fov", "get_fov");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "size", PROPERTY_HINT_RANGE, "0.001,16384,0.001,or_greater,suffix:m"), "set_size", "get_size");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "frustum_offset", PROPERTY_HINT_NONE, "suffix:m"), "set_frustum_offset", "get_frustum_offset");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "nominal_z", PROPERTY_HINT_RANGE, "1,4000,1,or_greater,suffix:m"), "set_nominal_z", "get_nominal_z");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "near", PROPERTY_HINT_RANGE, "0.001,10,0.001,or_greater,exp,suffix:m"), "set_near", "get_near");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "far", PROPERTY_HINT_RANGE, "0.01,4000,0.01,or_greater,exp,suffix:m"), "set_far", "get_far");
 
 	BIND_ENUM_CONSTANT(PROJECTION_PERSPECTIVE);
 	BIND_ENUM_CONSTANT(PROJECTION_ORTHOGONAL);
 	BIND_ENUM_CONSTANT(PROJECTION_FRUSTUM);
+	BIND_ENUM_CONSTANT(PROJECTION_2DX);
 
 	BIND_ENUM_CONSTANT(KEEP_WIDTH);
 	BIND_ENUM_CONSTANT(KEEP_HEIGHT);
@@ -581,6 +617,10 @@ real_t Camera3D::get_size() const {
 
 real_t Camera3D::get_near() const {
 	return near;
+}
+
+real_t Camera3D::get_nominal_z() const {
+	return nominal_z;
 }
 
 Vector2 Camera3D::get_frustum_offset() const {
@@ -609,6 +649,11 @@ void Camera3D::set_size(real_t p_size) {
 
 void Camera3D::set_near(real_t p_near) {
 	near = p_near;
+	_update_camera_mode();
+}
+
+void Camera3D::set_nominal_z(real_t p_nominal_z) {
+	nominal_z = p_nominal_z;
 	_update_camera_mode();
 }
 
