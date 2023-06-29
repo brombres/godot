@@ -378,3 +378,9 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 *.lnk
+
+# Rogo
+/.rogo
+/Local.rogo
+/BuildLocal.rogue
+/Libraries
