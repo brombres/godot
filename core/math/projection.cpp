@@ -363,7 +363,7 @@ void Projection::set_orthogonal(real_t p_size, real_t p_aspect, real_t p_znear, 
 
 void Projection::set_frustum(real_t p_left, real_t p_right, real_t p_bottom, real_t p_top, real_t p_near, real_t p_far) {
 	ERR_FAIL_COND(p_right <= p_left);
-	//ERR_FAIL_COND(p_top <= p_bottom);  Removed for 2DX
+	ERR_FAIL_COND(p_top <= p_bottom);
 	ERR_FAIL_COND(p_far <= p_near);
 
 	real_t *te = &columns[0][0];
@@ -409,16 +409,10 @@ void Projection::set_2dx(Vector2 p_pixel_size, real_t nominal_z, real_t p_near, 
   real_t right = left + 2*p_pixel_size.x/k;
   real_t bottom = top + 2*p_pixel_size.y/k;
 
-  //FIXME
-  //if (p_flip_fov)
-  //{
-    //real_t temp = top;
-    //top = bottom;
-    //bottom = temp;
-  //}
+  set_frustum(left, right, top, bottom, p_near, p_far);
 
-
-  set_frustum(left, right, bottom, top, p_near, p_far);
+  // Flip Y axis so y=0 is at the top
+  columns[1][1] = -columns[1][1];
 
   Projection translate;
   translate.set_identity();
