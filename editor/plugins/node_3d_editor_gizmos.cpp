@@ -1945,7 +1945,7 @@ void Camera3DGizmoPlugin::redraw(EditorNode3DGizmo *p_gizmo) {
 		} break;
 
 		case Camera3D::PROJECTION_2DX: {
-      // TODO BROM
+			// TODO BROM
 			float hsize = camera->get_size() / 2.0;
 
 			Vector3 side = Vector3(hsize, 0, -camera->get_near()).normalized();

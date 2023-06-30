@@ -91,7 +91,7 @@ void Camera3D::_validate_property(PropertyInfo &p_property) const {
 	if (attributes.is_valid()) {
 		const CameraAttributesPhysical *physical_attributes = Object::cast_to<CameraAttributesPhysical>(attributes.ptr());
 		if (physical_attributes) {
-      // FIXME: should the following set include 2DX "nominal_z"? --BROM
+			// FIXME: should the following set include 2DX "nominal_z"? --BROM
 			if (p_property.name == "near" || p_property.name == "far" || p_property.name == "fov" || p_property.name == "keep_aspect") {
 				p_property.usage = PROPERTY_USAGE_READ_ONLY | PROPERTY_USAGE_INTERNAL | PROPERTY_USAGE_EDITOR;
 			}
@@ -239,7 +239,7 @@ void Camera3D::set_2dx(real_t p_nominal_z, real_t p_z_far) {
 		return;
 	}
 
-  nominal_z = p_nominal_z;
+	nominal_z = p_nominal_z;
 
 	far = p_z_far;
 	mode = PROJECTION_2DX;

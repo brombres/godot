@@ -116,7 +116,7 @@ public:
 	void set_perspective(real_t p_fovy_degrees, real_t p_z_near, real_t p_z_far);
 	void set_orthogonal(real_t p_size, real_t p_z_near, real_t p_z_far);
 	void set_frustum(real_t p_size, Vector2 p_offset, real_t p_z_near, real_t p_z_far);
-  void set_2dx(real_t p_nominal_z, real_t p_z_far);
+	void set_2dx(real_t p_nominal_z, real_t p_z_far);
 	void set_projection(Camera3D::ProjectionType p_mode);
 
 	void make_current();

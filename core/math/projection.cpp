@@ -402,23 +402,23 @@ void Projection::set_frustum(real_t p_size, real_t p_aspect, Vector2 p_offset, r
 }
 
 void Projection::set_2dx(Vector2 p_pixel_size, real_t nominal_z, real_t p_near, real_t p_far, bool p_flip_fov) {
-  real_t k = (nominal_z + 1) * 2;
-  Vector2 vanishing_point( 0.5, 0.5 );
-  real_t left = ((-2 * p_pixel_size.x) / k) * vanishing_point.x;
-  real_t top  = ((-2 * p_pixel_size.y) / k) * vanishing_point.y;
-  real_t right = left + 2*p_pixel_size.x/k;
-  real_t bottom = top + 2*p_pixel_size.y/k;
+	real_t k = (nominal_z + 1) * 2;
+	Vector2 vanishing_point( 0.5, 0.5 );
+	real_t left = ((-2 * p_pixel_size.x) / k) * vanishing_point.x;
+	real_t top  = ((-2 * p_pixel_size.y) / k) * vanishing_point.y;
+	real_t right = left + 2*p_pixel_size.x/k;
+	real_t bottom = top + 2*p_pixel_size.y/k;
 
-  set_frustum(left, right, top, bottom, p_near, p_far);
+	set_frustum(left, right, top, bottom, p_near, p_far);
 
-  // Flip Y axis so y=0 is at the top
-  columns[1][1] = -columns[1][1];
+	// Flip Y axis so y=0 is at the top
+	columns[1][1] = -columns[1][1];
 
-  Projection translate;
-  translate.set_identity();
-  translate.columns[3][0] = -p_pixel_size.x*vanishing_point.x;
-  translate.columns[3][1] = -p_pixel_size.y*vanishing_point.y;
-  memcpy( columns, operator*(translate).columns, sizeof(Vector4)*4 );
+	Projection translate;
+	translate.set_identity();
+	translate.columns[3][0] = -p_pixel_size.x*vanishing_point.x;
+	translate.columns[3][1] = -p_pixel_size.y*vanishing_point.y;
+	memcpy( columns, operator*(translate).columns, sizeof(Vector4)*4 );
 }
 
 real_t Projection::get_z_far() const {

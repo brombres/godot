@@ -67,12 +67,12 @@ public:
 			PERSPECTIVE,
 			ORTHOGONAL,
 			FRUSTUM,
-      _2DX
+			_2DX
 		};
 		Type type;
 		float fov;
 		float znear, zfar;
-    float nominal_z;
+		float nominal_z;
 		float size;
 		Vector2 offset;
 		uint32_t visible_layers;
@@ -86,7 +86,7 @@ public:
 			visible_layers = 0xFFFFFFFF;
 			fov = 75;
 			type = PERSPECTIVE;
-      nominal_z = 2000;
+			nominal_z = 2000;
 			znear = 0.05;
 			zfar = 4000;
 			size = 1.0;
