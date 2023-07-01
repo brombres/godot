@@ -411,14 +411,13 @@ void Projection::set_2dx(Vector2 p_pixel_size, real_t nominal_z, real_t p_near, 
 
 	set_frustum(left, right, top, bottom, p_near, p_far);
 
-	// Flip Y axis so y=0 is at the top
-	columns[1][1] = -columns[1][1];
-
 	Projection translate;
 	translate.set_identity();
 	translate.columns[3][0] = -p_pixel_size.x*vanishing_point.x;
 	translate.columns[3][1] = -p_pixel_size.y*vanishing_point.y;
-	memcpy( columns, operator*(translate).columns, sizeof(Vector4)*4 );
+
+	Projection new_projection = operator*( translate );
+	memcpy( columns, new_projection.columns, sizeof(Vector4)*4 );
 }
 
 real_t Projection::get_z_far() const {
