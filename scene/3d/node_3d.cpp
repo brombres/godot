@@ -772,7 +772,7 @@ void Node3D::_propagate_drawing_order_changed() {
 #endif
 
 	for (Node3D *c : data.children) {
-		if (c->data.top_level_active) {
+		if (c->data.top_level) {
 			continue; //don't propagate to a top_level
 		}
 		c->_propagate_drawing_order_changed();
