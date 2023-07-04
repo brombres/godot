@@ -50,19 +50,6 @@ block
     ],
     Console.width.or_smaller(100) - 2
   ).indented( 2 )
-  #{
-     |  'rogo build' and 'rogo build release' build the editor for the current OS.
-     |
-     |  'rogo build dist' builds and packages everything possible by default into a distributable form - editors as production mode apps and templates in both debug and release mode for all platforms and architectures.
-     |
-     |EXAMPLES
-     |  rogo build                      # Editor for current platform
-     |  rogo build template             # Debug template for the cur platform+arch
-     |  rogo build ios template release # iOS release template, all architectures
-     |  rogo build all template dist    # Builds & packages templates, all platforms
-     |  rogo build all editor dist      # Builds & packages editors, all platforms
-     |  rogo build dist                 # Editor+templ. distributables, all platforms
-  }#
   desc .= replacing( "$PLATFORMS", ["all"].[add(supported_platforms)].join('|') )
 
   description( "build", desc )
@@ -144,9 +131,11 @@ routine build( targets:String )
     endForEach
   endForEach
 
-  rogo_sync_templates
+  #rogo_sync_templates
 
-  if (make_dist) rogo_package_templates
+  if (make_dist)
+    package
+  endIf
 endRoutine
 
 routine rogo_dist
@@ -154,55 +143,29 @@ routine rogo_dist
   build( System.command_line_arguments.cloned.join( '.' ) )  # includes 'dist' target
 endRoutine
 
-routine rogo_sync_templates
-endRoutine
-
-routine rogo_package
-  rogo_deps
+routine package
   if (System.is_macos)
-    rogo_package_macos
-    #rogo_package_ios
-    #rogo_package_android
-    #rogo_package_web
-  elseIf (System.is_windows)
-    rogo_package_windows
-    #rogo_package_android
-    #rogo_package_web
+    package_macos
   else
-    rogo_package_linux
-    #rogo_package_android
-    #rogo_package_web
+    trace "TODO"
   endIf
 endRoutine
 
-routine rogo_package_macos
-  header "Building Godot Editor [macOS x86_64 production]"
-  execute @|scons platform=macos arch=x86_64 production=yes vulkan_sdk_path=Libraries/MoltenVK
+routine package_macos
+  if (Files("bin/godot.macos.editor.*").any_newer_than("bin/godot.macos.editor.universal"))
+    header "Building editor [macOS universal binary]"
+    execute @|lipo -create bin/godot.macos.editor.x86_64 bin/godot.macos.editor.arm64 -output bin/godot.macos.editor.universal
+  endIf
 
-  header "Building Godot Editor [macOS arm64 production]"
-  execute @|scons platform=macos arch=arm64  production=yes vulkan_sdk_path=Libraries/MoltenVK
-
-  header "Building Godot Editor [macOS universal binary]"
-  execute @|lipo -create bin/godot.macos.editor.x86_64 bin/godot.macos.editor.arm64 -output bin/godot.macos.editor.universal
   local folder = File( "Build/macOS" )
   folder.create_folder
-  execute @|cp -r misc/dist/macos_tools.app Build/macOS/Godot.app
   (folder/"Godot.app/Contents/MacOS").create_folder
+
+  Files( "misc/dist/macos_tools.app/**" ).sync_to( File("Build/macOS/Godot.app"), &keep_unused, &verbose )
+
   execute @|cp bin/godot.macos.editor.universal Build/macOS/Godot.app/Contents/MacOS/Godot
   execute @|chmod +x Build/macOS/Godot.app/Contents/MacOS/Godot
   header "Build Complete: Build/macOS/Godot.app"
-endRoutine
-
-routine rogo_package_windows
-  trace "TODO"
-endRoutine
-
-routine rogo_package_linux
-  trace "TODO"
-endRoutine
-
-routine rogo_release_web
-  trace "TODO"
 endRoutine
 
 routine template_folder->File
@@ -214,16 +177,10 @@ routine template_folder->File
   endIf
 endRoutine
 
-routine rogo_package_templates
-  rogo_package_templates_ios
-endRoutine
-
-routine rogo_package_templates_ios
-  localize template_folder
-  println template_folder.exists
-endRoutine
-
 routine rogo_run
+  # Runs the most recent editor build for the current platform. If file Local.rogo exists and
+  # contains the line 'AUTOLAUNCH = "path/to/project/folder"', that project will be opened when the
+  # editor runs.
   if (System.is_macos)
     local exe_arch = File( "bin/godot.macos.editor.$"(Process.run("uname -m",&env)->String.trimmed) )
     local exe_universal = File( "bin/godot.macos.editor.universal" )
@@ -257,7 +214,9 @@ routine rogo_run
       execute exe
     endIf
 
-    #execute "bin/godot.macos.editor.arm64"
+  else
+    trace "TODO"
+
   endIf
 endRoutine
 
@@ -338,11 +297,8 @@ routine rogo_version( new_version="":String, new_status="":String )
 endRoutine
 
 routine rogo_deps
+  # Installs any missing dependencies (specifically: MoltenVK on macOS).
   install_moltenvk
-endRoutine
-
-routine rogo_rebuild_moltenvk
-  install_moltenvk( &rebuild )
 endRoutine
 
 routine install_moltenvk( &rebuild )
