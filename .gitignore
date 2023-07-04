@@ -383,3 +383,5 @@ $RECYCLE.BIN/
 .rogo
 Local.rogo
 BuildLocal.rogue
+/Build
+/Libraries
