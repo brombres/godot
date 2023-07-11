@@ -95,8 +95,8 @@ routine build( targets:String )
       if (product == "editor" and not BuildConfig.EDITOR_PLATFORMS.contains(platform)) nextIteration
       local architectures = config.architectures
       if (architectures.is_empty)
-        if (make_dist or product == "template") architectures = all_architectures( platform )
-        else                                    architectures = String[][null]
+        if (make_dist or product == "templates") architectures = all_architectures( platform )
+        else                                     architectures = String[][null]
       endIf
       forEach (architecture in architectures)
         local modes = config.modes
@@ -109,28 +109,30 @@ routine build( targets:String )
           endIf
         endIf
         forEach (mode in modes)
-          local platform_name = BuildConfig.PLATFORM_NAMES[platform]
-          which (platform)
-          endWhich
-          local product_name = which{ product=="editor":"editor" || "export template" }
-          local arch = which{ architecture || "" }
-          local is_sim = platform == "ios" and arch == "x86_64"
-          local sim = which{ is_sim:"simulator" || "" }
-          header "Building $ $ [$]"(platform_name,product_name,arch.appending(mode).appending(sim))
+          local sim_flags = which{ platform=="ios" and product=="templates":[false,true] || [false] }
+          forEach (is_sim in sim_flags)
+            local platform_name = BuildConfig.PLATFORM_NAMES[platform]
+            local product_name = which{ product=="editor":"editor" || "export template" }
+            local arch = which{ architecture || "" }
+            if (platform == "ios" and arch == "x86_64" and not is_sim) nextIteration
 
-          local cmd = "scons platform=$"(platform)
-          if (arch != "") cmd .= appending( "arch=$"(arch) )
-          if (product == "editor")
-            cmd .= appending( "target=editor" )
-          else
-            cmd .= appending( "target=template_$"(mode) )
-            if (is_sim) cmd .= appending( "ios_simulator=yes" )
-          endIf
-          if (System.is_macos) cmd .= appending( "vulkan_sdk_path=Libraries/MoltenVK" )
-          if (make_dist and mode == "release") cmd .= appending( "production=yes" )
-          local modules = "Libraries/Modules".appending( Build.MODULES.to_list<<String>>.join(','), ',' )
-          cmd .= appending( 'custom_modules="$"'(modules) )
-          execute cmd
+            local sim = which{ is_sim:"simulator" || "" }
+            header "Building $ $ [$]"(platform_name,product_name,arch.appending(mode).appending(sim))
+
+            local cmd = "scons platform=$"(platform)
+            if (arch != "") cmd .= appending( "arch=$"(arch) )
+            if (product == "editor")
+              cmd .= appending( "target=editor" )
+            else
+              cmd .= appending( "target=template_$"(mode) )
+              if (is_sim) cmd .= appending( "ios_simulator=yes" )
+            endIf
+            if (System.is_macos) cmd .= appending( "vulkan_sdk_path=Libraries/MoltenVK" )
+            if (make_dist and mode == "release") cmd .= appending( "production=yes" )
+            local modules = "Libraries/Modules".appending( Build.MODULES.to_list<<String>>.join(','), ',' )
+            cmd .= appending( 'custom_modules="$"'(modules) )
+            execute cmd
+          endForEach
         endForEach
       endForEach
     endForEach
@@ -139,7 +141,7 @@ routine build( targets:String )
   #rogo_sync_templates
 
   if (make_dist)
-    package
+    package( config )
   endIf
 endRoutine
 
@@ -148,11 +150,105 @@ routine rogo_dist
   build( System.command_line_arguments.cloned.join( '.' ) )  # includes 'dist' target
 endRoutine
 
-routine package
+routine rogo_package
+  package( BuildConfig(System.command_line_arguments.cloned.[remove_first].join( '.' )) )
+endRoutine
+
+routine rogo_install
+  install( BuildConfig(System.command_line_arguments.cloned.[remove_first].join( '.' )) )
+endRoutine
+
+routine introspection_call( sig:String )
+  forEach (m in <<Routine>>.global_methods)
+    if (m.signature == sig)
+      m.call
+      return
+    endIf
+  endForEach
+  throw Error( "[INTERNAL ERROR] Routine $ is undefined."(sig) )
+endRoutine
+
+routine package( config:BuildConfig )
+  install_moltenvk
+  forEach (platform in config.platforms)
+    forEach (product in config.products)
+      if (product == "editor" and not BuildConfig.EDITOR_PLATFORMS.contains(platform)) nextIteration
+      introspection_call( "package_$_$()"(platform,product) )
+      if (config.install) introspection_call( "install_$_$()"(platform,product) )
+    endForEach
+  endForEach
+endRoutine
+
+routine install( config:BuildConfig )
+  forEach (platform in config.platforms)
+    forEach (product in config.products)
+      if (product == "editor" and not BuildConfig.EDITOR_PLATFORMS.contains(platform)) nextIteration
+      introspection_call( "install_$_$()"(platform,product) )
+    endForEach
+  endForEach
+endRoutine
+
+routine copy( source:File, destination:File )
+  assert source.exists
+  if (source.is_folder)
+    Files( source, "**" ).sync_to( destination, &verbose )
+  else
+    source.copy_to( destination, &verbose )
+  endIf
+endRoutine
+
+routine package_ios_templates
+  local folder = File( "Build/iOS/Templates" )
+  folder.delete
+  folder.create_folder
+
+  Files( "misc/dist/ios_xcode/**" ).sync_to( folder, &verbose )
+  copy (File("bin/libgodot.ios.template_debug.arm64.a"), folder/"libgodot.ios.debug.xcframework/ios-arm64/libgodot.a" )
+
+  copy(
+    File("bin/libgodot.ios.template_debug.x86_64.simulator.a"),
+    folder/"libgodot.ios.debug.xcframework/ios-arm64_x86_64-simulator/libgodot.a"
+  )
+
+  #local cmd = "lipo -create bin/libgodot.ios.template_debug.arm64.simulator.a"
+  #cmd .= appending( "bin/libgodot.ios.template_debug.x86_64.simulator.a" )
+  #cmd .= appending( "-output Build/iOS/Templates/libgodot.ios.debug.xcframework/ios-arm64_x86_64-simulator/libgodot.a" )
+  #execute cmd
+
+  copy(File("bin/libgodot.ios.template_release.arm64.a"), folder/"libgodot.ios.release.xcframework/ios-arm64/libgodot.a" )
+
+  copy(
+    File("bin/libgodot.ios.template_release.x86_64.simulator.a"),
+    folder/"libgodot.ios.release.xcframework/ios-arm64_x86_64-simulator/libgodot.a"
+  )
+  #cmd = "lipo -create bin/libgodot.ios.template_release.arm64.simulator.a"
+  #cmd .= appending( "bin/libgodot.ios.template_release.x86_64.simulator.a" )
+  #cmd .= appending( "-output Build/iOS/Templates/libgodot.ios.release.xcframework/ios-arm64_x86_64-simulator/libgodot.a" )
+  #execute cmd
+
+  copy( File("Libraries/MoltenVK/Package/Release/MoltenVK/MoltenVK.xcframework"), folder/"MoltenVK.xcframework" )
+
+  File( "Build/iOS/ios.zip" ).delete
+  execute @|(cd Build/iOS/Templates && zip -r ../ios.zip *)
+endRoutine
+
+routine install_ios_templates
+  local file = File( "Build/iOS/ios.zip" )
+  assert file.exists
+
+  localize templates_folder
+  assert templates_folder.parent.exists
+  templates_folder.create_folder
+  file.copy_to( templates_folder, &verbose )
+
+endRoutine
+
+routine templates_folder->File
   if (System.is_macos)
-    package_macos
+    return File( "~/Library/Application Support/Godot/export_templates" / version )
   else
     trace "TODO"
+    throw Error( "[INTERNAL ERROR] Templates folder not defined for $."(System.os) )
   endIf
 endRoutine
 
@@ -240,11 +336,12 @@ routine version->String
   local v = String( File("version.py") )
   local parts = v.extract_strings( "*major = $(I)*minor = $(I)*patch = $(I)*" )
   local status = v.extract_string( ''*status = "$"*'' )
+  if (parts.last == '0') parts.remove_last
   return "$.$"(parts.join('.'),status)
 endRoutine
 
 routine rogo_version( new_version="":String, new_status="":String )
-  # SYNTAX: rogo version [version [status]]
+  # SYNTAX: rogo version [x.y.z [status]]
   # Displays or changes the Godot version number in all applicable files.
   # Call without arguments to display the current version number.
   if (not String.exists(new_version))
@@ -507,12 +604,12 @@ endRoutine
 
 class BuildConfig
   GLOBAL PROPERTIES
-    PRODUCTS         = ["editor","template","templates"]
+    PRODUCTS         = ["editor","templates"]
     EDITOR_PLATFORMS = ["linux","macos","uwp","web","windows"]
     PLATFORMS        = ["all","android","ios","javascript","js","linux","macos","uwp","web","windows"]
     ARCHITECTURES    = ["x86_32","x86_64","arm32","arm64","rv64","ppc32","ppc64","wasm32"]
     MODES            = ["debug","release","dist","distributable"]
-    ALIASES = { "distributable":"dist", "templates":"template", "javascript":"web", "js":"web" } : [String:String]
+    ALIASES = { "distributable":"dist", "template":"templates", "javascript":"web", "js":"web" } : [String:String]
     PLATFORM_NAMES = { "android":"Android", "ios":"iOS", "linux":"Linux", "macos":"macOS",
                        "uwp":"UWP", "web":"Web", "windows":"Windows" } : [String:String]
 
@@ -522,6 +619,7 @@ class BuildConfig
     architectures = String[]
     modes = String[]
     make_dist : Logical
+    install   : Logical
 
   METHODS
     method init( target_string:String )
@@ -530,6 +628,11 @@ class BuildConfig
       localize supported_platforms
 
       local targets = target_string.split('.')
+      if (targets.contains("install"))
+        install = true
+        targets.remove( "install" )
+      endIf
+
       forEach (target in targets)
         if (target == "default") nextIteration
         if (target == "all")
@@ -563,7 +666,7 @@ class BuildConfig
 
       if (make_dist)
         if (platforms.is_empty) platforms.add( supported_platforms )
-        if (products.is_empty) products.[ add("editor"), add("template") ]
+        if (products.is_empty) products.[ add("editor"), add("templates") ]
       else
         if (platforms.is_empty) platforms.add( default_os )
         if (products.is_empty)
@@ -571,7 +674,7 @@ class BuildConfig
             necessary (EDITOR_PLATFORMS.contains(forEach in platforms))
             products.add( "editor" )
           unsatisfied
-            products.add( "template" )
+            products.add( "templates" )
           endContingent
         elseIf (products.contains("editor"))
           forEach (p in platforms)
